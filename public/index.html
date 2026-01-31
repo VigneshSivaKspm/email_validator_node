@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Email Validator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f8f9fb;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            padding: 50px;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #1a202c;
+            margin-bottom: 8px;
+            text-align: center;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: #718096;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 15px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .status-valid {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .status-invalid {
+            background: #fef2f2;
+            color: #7f1d1d;
+            border: 1px solid #fecaca;
+        }
+
+        .bulk-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fb;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #5a67d8;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 6px;
+            font-weight: 500;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            margin-top: 24px;
+        }
+
+        .download-btn:hover {
+            box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+        }
+
+        .progress-container {
+            display: none;
+            margin-bottom: 24px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #5a67d8 0%, #667eea 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .detailed-validator {
+            background: #f8f9fb;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+        }
+
+        .validator-check {
+            padding: 6px 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .validator-check.pass {
+            color: #22c55e;
+            font-weight: 500;
+        }
+
+        .validator-check.fail {
+            color: #ef4444;
+            font-weight: 500;
+        }
+
+        .validator-check.skip {
+            color: #a0aec0;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.3px;
+        }
+
+        input[type="email"],
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.25s ease;
+            background: #f8f9fb;
+            color: #2d3748;
+        }
+
+        input[type="email"]:focus,
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #5a67d8;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.05);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0;
+        }
+
+        .tab-button {
+            padding: 14px 0;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #718096;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            color: #2d3748;
+        }
+
+        .tab-button.active {
+            color: #5a67d8;
+            border-bottom-color: #5a67d8;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: monospace;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-label {
+            display: block;
+            padding: 32px;
+            background: #f8f9fb;
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .file-upload-label:hover {
+            background: #edf2f7;
+            border-color: #5a67d8;
+        }
+
+        .file-upload-label.dragover {
+            background: #edf2f7;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+            font-size: 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .results-table thead {
+            background: #f8f9fb;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .results-table th {
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .results-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+
+        .results-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .results-table tr:hover {
+            background: #f8f9fb;
+        }
+
+        .results-table td:nth-child(1) {
+            font-weight: 500;
+            color: #2d3748;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+        }
+
+        .results-table td:nth-child(3) {
+            max-width: 400px;
+            word-break: break-word;
+        }
+
+        .options {
+            background: #f8f9fb;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        button {
+            width: 100%;
+            padding: 13px 20px;
+            background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.3px;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 16px rgba(90, 103, 216, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 24px;
+            border-radius: 10px;
+            display: none;
+            border-left: 4px solid transparent;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result.valid {
+            background: #f0fdf4;
+            border-left-color: #22c55e;
+            color: #166534;
+        }
+
+        .result.invalid {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+            color: #7f1d1d;
+        }
+
+        .result-title {
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .result-message {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .result-details {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #7f1d1d;
+            padding: 14px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+            border-left: 4px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✉️ Email Validator</h1>
+        <p class="subtitle">Advanced email validation with multiple checks</p>
+
+        <!-- Bulk Upload Tab -->
+        <div id="bulk" class="tab-content active">
+            <form id="bulkForm">
+                <div class="form-group">
+                    <label>Choose Upload Method *</label>
+                </div>
+
+                <!-- File Upload -->
+                <div class="file-upload">
+                    <input type="file" id="csvFile" accept=".csv,.txt" onchange="handleFileUpload(event)">
+                    <label for="csvFile" class="file-upload-label" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <div class="upload-icon">📁</div>
+                        <div><strong>Click to upload or drag & drop</strong></div>
+                        <div style="font-size: 12px; color: #999; margin-top: 8px;">CSV or TXT file (one email per line)</div>
+                    </label>
+                </div>
+
+                <!-- Text Area -->
+                <div class="form-group">
+                    <label for="emailList">Or Paste Emails Below *</label>
+                    <textarea id="emailList" placeholder="Paste emails here (one per line)&#10;example1@email.com&#10;example2@email.com&#10;example3@email.com" rows="6"></textarea>
+                </div>
+
+                <button type="submit">Validate Emails</button>
+            </form>
+
+            <div class="loading" id="bulkLoading">
+                <div class="spinner"></div>
+                <p id="bulkLoadingText">Processing emails...</p>
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="progressCurrent">0</span> / <span id="progressTotal">0</span> emails processed
+                    </div>
+                </div>
+            </div>
+
+            <div id="bulkResults" style="display: none;">
+                <div class="bulk-stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalCount">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="validCount" style="color: #28a745;">0</div>
+                        <div class="stat-label">Valid</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="invalidCount" style="color: #dc3545;">0</div>
+                        <div class="stat-label">Invalid</div>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Result</th>
+                            <th>Reason</th>
+                            <th>Disposable</th>
+                            <th>Role</th>
+                            <th>Free</th>
+                            <th>User</th>
+                            <th>Domain</th>
+                            <th>MX Record</th>
+                            <th>MX Domain</th>
+                            <th>SPF</th>
+                            <th>DKIM</th>
+                            <th>DMARC</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                    </tbody>
+                </table>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="button" class="download-btn" onclick="downloadResultsCSV()">Download CSV</button>
+                    <button type="button" class="download-btn" onclick="downloadResultsExcel()" style="background: linear-gradient(135deg, #217346 0%, #185c37 100%);">Download Excel</button>
+                </div>
+            </div>
+
+            <div id="bulkErrorContainer"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // Validation Logger for browser console
+        class ValidationLogger {
+          constructor() {
+            this.logs = []
+          }
+
+          addLog(type, message, data) {
+            this.logs.push({ type, message, data, timestamp: new Date().toISOString() })
+          }
+
+          getLogs() {
+            return this.logs
+          }
+
+          clear() {
+            this.logs = []
+          }
+
+          displayInConsole() {
+            console.clear()
+            console.log('%c🔍 Email Validation Logs', 'font-size: 16px; font-weight: bold; color: #5a67d8;')
+            console.log('═'.repeat(80))
+
+            this.logs.forEach((log) => {
+              const timestamp = new Date(log.timestamp).toLocaleTimeString()
+
+              switch (log.type) {
+                case 'start':
+                  console.log(
+                    `%c🔍 [${timestamp}] ${log.message}`,
+                    'color: #667eea; font-weight: bold; font-size: 14px;'
+                  )
+                  if (log.data) console.table(log.data)
+                  break
+
+                case 'success':
+                  console.log(`%c✅ [${timestamp}] ${log.message}`, 'color: #22c55e; font-weight: 500;')
+                  if (log.data) console.log(log.data)
+                  break
+
+                case 'warning':
+                  console.log(`%c⚠️ [${timestamp}] ${log.message}`, 'color: #f59e0b; font-weight: 500;')
+                  if (log.data) console.log(log.data)
+                  break
+
+                case 'error':
+                  console.log(`%c❌ [${timestamp}] ${log.message}`, 'color: #ef4444; font-weight: bold;')
+                  if (log.data) console.log(log.data)
+                  break
+
+                case 'api':
+                  console.log(`%c📡 [${timestamp}] ${log.message}`, 'color: #3b82f6; font-style: italic;')
+                  if (log.data) console.log(log.data)
+                  break
+
+                case 'step':
+                  console.log(`%c🔄 [${timestamp}] ${log.message}`, 'color: #8b5cf6; font-weight: 500;')
+                  break
+
+                default:
+                  console.log(`%c[${timestamp}] ${log.message}`, 'color: #6b7280;')
+                  if (log.data) console.log(log.data)
+              }
+            })
+
+            console.log('═'.repeat(80))
+            console.log('%c✨ Validation Complete', 'font-size: 14px; font-weight: bold; color: #5a67d8;')
+          }
+        }
+
+        const logger = new ValidationLogger()
+        let bulkResults = [];
+
+        // Bulk Upload Functions
+        const bulkForm = document.getElementById('bulkForm');
+        const emailListTextarea = document.getElementById('emailList');
+        const bulkLoading = document.getElementById('bulkLoading');
+        const bulkResults_div = document.getElementById('bulkResults');
+        const bulkErrorContainer = document.getElementById('bulkErrorContainer');
+        const csvFileInput = document.getElementById('csvFile');
+
+        bulkForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            bulkErrorContainer.innerHTML = '';
+            bulkResults_div.style.display = 'none';
+            
+            // Clear logger for new validation
+            logger.clear();
+            logger.addLog('start', 'Starting bulk email validation...', {});
+
+            let emails = [];
+            const emailText = emailListTextarea.value.trim();
+
+            if (emailText) {
+                emails = emailText.split('\n')
+                    .map(e => e.trim())
+                    .filter(e => e && e.includes('@'));
+            }
+
+            if (emails.length === 0) {
+                showBulkError('Please enter at least one email address');
+                return;
+            }
+
+            logger.addLog('step', `Found ${emails.length} emails to validate`);
+
+            // Enable all validators including SMTP on Railway
+            const validateSMTP = true; // Always enabled on Railway
+            const sender = 'noreply@test.com'; // Default sender
+
+            bulkLoading.style.display = 'block';
+            document.getElementById('bulkLoadingText').textContent = `Processing emails...`;
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('progressTotal').textContent = emails.length;
+
+            const results = [];
+            let validCount = 0;
+            let invalidCount = 0;
+
+            // Process emails one by one
+            for (let i = 0; i < emails.length; i++) {
+                const email = emails[i];
+                logger.addLog('step', `[${i + 1}/${emails.length}] Processing: ${email}`);
+                
+                try {
+                    const response = await fetch('/api/validate-single', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email,
+                            validateSMTP,
+                            sender
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    // Log the result
+                    if (data.valid) {
+                        logger.addLog('success', `Email valid: ${email}`, { 
+                          result: data.result,
+                          score: data.security_score,
+                          breached: data.breached
+                        });
+                        validCount++;
+                    } else {
+                        logger.addLog('error', `Email invalid: ${email}`, { 
+                          reason: data.reason,
+                          details: data.pattern_issues
+                        });
+                        invalidCount++;
+                    }
+                    
+                    results.push(data);
+                    
+                    // Update progress
+                    updateProgress(i + 1, emails.length);
+                    document.getElementById('bulkLoadingText').textContent = `Processing email ${i + 1} of ${emails.length}: ${email}`;
+                    
+                } catch (error) {
+                    logger.addLog('error', `Validation error for ${email}`, { error: error.message });
+                    results.push({
+                        email,
+                        valid: false,
+                        reason: error.message || 'Validation error',
+                        validators: {}
+                    });
+                    invalidCount++;
+                    updateProgress(i + 1, emails.length);
+                    document.getElementById('bulkLoadingText').textContent = `Processing email ${i + 1} of ${emails.length}: ${email}`;
+                }
+
+                // Small delay between requests to avoid overwhelming the server
+                if (i < emails.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+
+            // All done
+            bulkLoading.style.display = 'none';
+            bulkResults = results;
+            
+            logger.addLog('success', 'Bulk validation complete', { 
+              total: results.length,
+              valid: validCount,
+              invalid: invalidCount
+            });
+            
+            // Display all logs in browser console
+            logger.displayInConsole();
+            
+            displayBulkResults({
+                total: results.length,
+                valid: validCount,
+                invalid: invalidCount,
+                results: results
+            });
+        });
+
+        function updateProgress(current, total) {
+            const percentage = (current / total) * 100;
+            document.getElementById('progressFill').style.width = percentage + '%';
+            document.getElementById('progressCurrent').textContent = current;
+        }
+
+        function displayBulkResults(data) {
+            document.getElementById('totalCount').textContent = data.total;
+            document.getElementById('validCount').textContent = data.valid;
+            document.getElementById('invalidCount').textContent = data.invalid;
+
+            const resultsBody = document.getElementById('resultsBody');
+            resultsBody.innerHTML = '';
+
+            data.results.forEach(result => {
+                const isValid = result.valid;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${result.email || ''}</strong></td>
+                    <td><span class="status-badge ${isValid ? 'status-valid' : 'status-invalid'}">${isValid ? 'valid' : 'invalid'}</span></td>
+                    <td>${result.reason || ''}</td>
+                    <td>${result.disposable ? 'Yes' : 'No'}</td>
+                    <td>${result.role ? 'Yes' : 'No'}</td>
+                    <td>${result.free ? 'Yes' : 'No'}</td>
+                    <td>${result.user || ''}</td>
+                    <td>${result.domain || ''}</td>
+                    <td style="font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${result.mx_record || ''}</td>
+                    <td>${result.mx_domain || ''}</td>
+                    <td>${result.spf ? '✓' : '✗'}</td>
+                    <td>${result.dkim ? '✓' : '✗'}</td>
+                    <td>${result.dmarc ? '✓' : '✗'}</td>
+                    <td>${result.security_score || 0}</td>
+                `;
+                resultsBody.appendChild(row);
+            });
+
+            bulkResults_div.style.display = 'block';
+        }
+
+        function showBulkError(message) {
+            bulkErrorContainer.innerHTML = `<div class="error">⚠️ ${message}</div>`;
+        }
+
+        // File Upload Handlers
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const emails = content.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line && line.includes('@'));
+                emailListTextarea.value = emails.join('\n');
+            };
+            reader.readAsText(file);
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.querySelector('.file-upload-label').classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            document.querySelector('.file-upload-label').classList.remove('dragover');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.querySelector('.file-upload-label').classList.remove('dragover');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                csvFileInput.files = files;
+                handleFileUpload({ target: { files } });
+            }
+        }
+
+        // Download Results as CSV
+        function downloadResultsCSV() {
+            if (bulkResults.length === 0) return;
+
+            const headers = ['email', 'result', 'reason', 'disposable', 'accept_all', 'role', 'roleType', 'free', 'user', 'domain', 'mx_record', 'mx_domain', 'provider', 'spf', 'dkim', 'dmarc', 'security_score', 'domainStatus'];
+            let csv = headers.join(',') + '\n';
+            
+            bulkResults.forEach(result => {
+                const row = headers.map(h => {
+                    let val = result[h];
+                    if (val === undefined || val === null) val = '';
+                    if (typeof val === 'boolean') val = val ? 'true' : 'false';
+                    // Escape quotes and wrap in quotes
+                    val = String(val).replace(/"/g, '""');
+                    return `"${val}"`;
+                });
+                csv += row.join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `email-validation-results-${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Download Results as Excel
+        function downloadResultsExcel() {
+            if (bulkResults.length === 0) return;
+
+            const headers = ['email', 'result', 'reason', 'disposable', 'accept_all', 'role', 'roleType', 'free', 'user', 'domain', 'mx_record', 'mx_domain', 'provider', 'spf', 'dkim', 'dmarc', 'security_score', 'domainStatus'];
+            
+            const data = bulkResults.map(result => {
+                const row = {};
+                headers.forEach(h => {
+                    let val = result[h];
+                    if (val === undefined || val === null) val = '';
+                    if (typeof val === 'boolean') val = val ? 'true' : 'false';
+                    row[h] = val;
+                });
+                return row;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(data, { header: headers });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Email Validation Results');
+            
+            // Auto-size columns
+            const colWidths = headers.map(h => ({ wch: Math.max(h.length, 15) }));
+            ws['!cols'] = colWidths;
+
+            XLSX.writeFile(wb, `email-validation-results-${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+    </script>
+</body>
+</html>
